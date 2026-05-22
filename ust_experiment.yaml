@@ -1,0 +1,86 @@
+# ==========================================
+# UST Framework: 统一多域推荐系统全局配置
+# ==========================================
+
+# 1. 硬件与随机数
+gpu_id: 0
+use_gpu: True
+seed: 2026
+
+# 2. 超参数全局默认基座 (会被 Python 脚本中的动态参数覆盖)
+beta1: 0.01  # 压缩先验权重 (对应原 kl_weight)
+beta2: 0.1   # 跨域对齐权重 (单域时脚本会强行覆写为 0)
+beta3: 0.1   # 正交解耦权重 (对应原 orth_weight)
+use_ust: True
+
+# 3. 数据集宏观配置 
+# (注意：dataset 和 data_path 会被我们的自动化 python 脚本动态接管，这里只需留空或写个占位符)
+dataset: 'All_Beauty'
+data_path: './data/Processed_All_Beauty/' 
+
+# 4. 数据字段与加载机制
+USER_ID_FIELD: user_id
+ITEM_ID_FIELD: item_id
+TIME_FIELD: timestamp
+load_col:
+  inter: [user_id, item_id, timestamp]
+
+# 🚨 删掉 benchmark_filename 这一行！
+# benchmark_filename: ['train', 'valid', 'test'] 
+MAX_ITEM_LIST_LENGTH: 50
+
+# 5. 评测引擎 (顶会标准的 Full-Ranking)
+eval_args:
+  split: {'LS': 'valid_and_test'}  # 🚨 新增：让 RecBole 自动接管序列切分 (Leave-One-Out)
+  group_by: user    
+  order: TO         
+  mode: full
+metrics: ['Recall', 'MRR', 'NDCG', 'Hit']
+topk: [5, 10, 20]
+valid_metric: NDCG@10
+eval_batch_size: 4096
+
+# 6. 训练引擎
+# ================= 全局维度配置 =================
+hidden_size: 64      
+embedding_size: 64   
+latent_dim: 64       
+
+# ================= 序列模型 (SASRec / GRU4Rec) 专属保底 =================
+n_layers: 2          
+n_heads: 2           
+inner_size: 256      
+hidden_dropout_prob: 0.5  
+attn_dropout_prob: 0.5    
+hidden_act: 'gelu'
+loss_type: 'CE' 
+
+# 🚨 新增：SASRec 极易因为这两个参数缺失而崩溃
+layer_norm_eps: 1e-12      # LayerNorm 的分母极小值，如果缺失会导致张量除以 0 崩溃
+initializer_range: 0.02    # 权重初始化的标准差，如果缺失会导致正态分布初始化函数报错
+
+# 🚨 新增：明确告诉框架序列字段的名字，防止 Dataset 找不到属性
+ITEM_SEQ_FIELD: item_id_list
+ITEM_SEQ_LEN_FIELD: item_length
+
+
+# ================= 图模型 (LightGCN / BPR) 专属保底 =================
+# 🚨 新增：防止 LightGCN 在计算 Loss 时找不到正则化系数
+reg_weight: 1e-04          # BPR 损失的 L2 正则化权重
+require_pow: False         # 某些老版 BPR 的幂次参数
+epochs: 100
+train_batch_size: 2048
+learning_rate: 0.001
+
+# 🚨 极其关键：删除了 train_neg_sample_args: ~
+# 让 RecBole 根据模型 (SASRec/BPR) 自动推断负采样逻辑！
+
+# 🚨 新增：省钱秘籍 (早停机制)
+stopping_step: 10   # 如果连续 10 个 Epoch 验证集 NDCG@10 没有提升，提前结束训练
+
+# 7. 显示配置
+show_progress: False # 🚨 在 AutoDL 跑大循环务必设为 False，否则海量控制台输出会卡死服务器
+
+# 8. 释放 DataLoader 的线程吃存
+# 如果 worker 太多，每个 worker 都会复制一份数据到内存/显存
+worker: 0

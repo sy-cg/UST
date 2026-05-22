@@ -1,0 +1,5 @@
+# USTv2 specific defaults.
+beta4: 0.1
+fusion_dropout: 0.1
+tau_min: 0.2
+mm_loss_weight: 0.1

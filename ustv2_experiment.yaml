@@ -1,0 +1,65 @@
+gpu_id: 0
+use_gpu: True
+seed: 2026
+reproducibility: True
+
+beta1: 0.01
+beta2: 0.1
+beta3: 0.1
+beta4: 0.1
+use_ust: True
+vocab_size: 256
+gumbel_tau: 1.0
+tau_min: 0.2
+fusion_dropout: 0.1
+mm_loss_weight: 0.1
+
+dataset: "All_Beauty"
+data_path: "./data/Processed_All_Beauty/"
+
+USER_ID_FIELD: user_id
+ITEM_ID_FIELD: item_id
+TIME_FIELD: timestamp
+load_col:
+  inter: [user_id, item_id, timestamp]
+
+MAX_ITEM_LIST_LENGTH: 50
+ITEM_SEQ_FIELD: item_id_list
+ITEM_SEQ_LEN_FIELD: item_length
+
+eval_args:
+  split: {"LS": "valid_and_test"}
+  group_by: user
+  order: TO
+  mode: full
+metrics: ["Recall", "MRR", "NDCG", "Hit"]
+topk: [5, 10, 20]
+valid_metric: NDCG@10
+eval_batch_size: 4096
+
+hidden_size: 64
+embedding_size: 64
+latent_dim: 64
+
+n_layers: 2
+n_heads: 2
+inner_size: 256
+hidden_dropout_prob: 0.5
+attn_dropout_prob: 0.5
+hidden_act: "gelu"
+layer_norm_eps: 1e-12
+initializer_range: 0.02
+
+num_layers: 1
+dropout_prob: 0.3
+
+loss_type: "CE"
+reg_weight: 1e-04
+require_pow: False
+epochs: 100
+train_batch_size: 2048
+learning_rate: 0.001
+stopping_step: 10
+
+show_progress: False
+worker: 0
